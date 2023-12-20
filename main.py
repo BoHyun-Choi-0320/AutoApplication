@@ -5,13 +5,18 @@ import sys
 import PyPDF2
 import openpyxl.styles
 import pandas as pd
+import win32com.client
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
 from openpyxl.styles import Font, Border, Side
+from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor, AbsoluteAnchor
+from openpyxl.drawing.xdr import XDRPositiveSize2D, XDRPoint2D
+from openpyxl.utils.units import pixels_to_EMU, cm_to_EMU
 import xlwings as xw
 from PyPDF2 import PdfMerger, PdfReader
+from openpyxl.utils import coordinate_to_tuple, range_to_tuple
 
 
 class MyApp(QWidget):
@@ -37,7 +42,7 @@ class MyApp(QWidget):
         self.setLayout(grid)
 
         # 객체 생성
-        self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214.xlsx')
+        self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214_나무.xlsx')
         self.folderPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/FolderTree_v2')
         self.formPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/장애물 관리대장 양식')
 
@@ -107,18 +112,18 @@ class MyApp(QWidget):
         self.copyExcel()
         try:
 
-            if os.path.isdir(self.pdfPath+"/test"):
-                shutil.rmtree(self.pdfPath+"/test")
+            if os.path.isdir(self.pdfPath + "/test"):
+                shutil.rmtree(self.pdfPath + "/test")
         except Exception as e:
-            print("Error - readExcel : ",e)
+            print("Error - readExcel : ", e)
 
     # 결과 저장 폴더 만드는 함수
     def makeFolder(self):
         print('MyApp - makeFolder()')
         self.path = os.getcwd()
         try:
-            if not os.path.exists(self.path+"/result"):
-                os.mkdir(self.path+"/result")
+            if not os.path.exists(self.path + "/result"):
+                os.mkdir(self.path + "/result")
         except:
             print('Error : Creating directory.' + self.pdfPath)
 
@@ -137,10 +142,10 @@ class MyApp(QWidget):
             print('Error : Creating directory.' + self.pdfPath)
 
         try:
-            if not os.path.exists(self.pdfPath+"/test"):
-                os.mkdir(self.pdfPath+"/test")
+            if not os.path.exists(self.pdfPath + "/test"):
+                os.mkdir(self.pdfPath + "/test")
         except:
-            print('Error : Creating directory.' + self.pdfPath+"/test")
+            print('Error : Creating directory.' + self.pdfPath + "/test")
 
     def copyExcel(self):
         print('MyApp - copyExcel()')
@@ -256,53 +261,80 @@ class MyApp(QWidget):
             ws1.font = Font(name='돋움', size=11)
             wb.save(savePath)
 
-            self.excelToPDF(savePath, data['연번'])
         except Exception as e:
             print("inputDataToExcel() - Error! : ", e)
+        finally:
+            print('inputDataToExcel Done!')
+            self.excelToPDF(savePath, data['연번'])
 
     def typeImage(self, type, imgPath, data, wb, ws1, ws2, savePath):
         print('MyApp - typeImage()')
         try:
-            self.setImage(wb=wb, ws=ws1, width=21.41, height=11.28, imgPath=imgPath, data=data, position="A25",
-                          imgType="/현장사진_", savePath=savePath)
+            self.setImage(wb=wb, ws=ws1, imgPath=imgPath, data=data, imgType="/현장사진_", savePath=savePath, posRange="A25:G25", positionX=12, positionY=700)
             if type == '나무':
-                self.setImage(wb=wb, ws=ws2, width=19.53, height=11.48, imgPath=imgPath, data=data,
-                              position="A5", imgType="/단면도_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=10.02, height=11.57, imgPath=imgPath, data=data,
-                              position="A20", imgType="/포인트클라우드_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=10.16, height=11.49, imgPath=imgPath, data=data,
-                              position="E20", imgType="/지상라이다_", savePath=savePath)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", positionX=12, positionY=140)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", positionX=12, positionY=650)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/지상라이다_", savePath=savePath, posRange="E20:G20", positionX=375, positionY=650)
+
             elif type == '산':
-                self.setImage(wb=wb, ws=ws2, width=19.38, height=11.4, imgPath=imgPath, data=data,
-                              position="A5", imgType="/단면도_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=9.73, height=11.55, imgPath=imgPath, data=data,
-                              position="A20", imgType="/포인트클라우드_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=9.66, height=11.51, imgPath=imgPath, data=data,
-                              position="E20", imgType="/수치표고자료_", savePath=savePath)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", positionX=12, positionY=140)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", positionX=12, positionY=650)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/수치표고자료_", savePath=savePath, posRange="E20:G20", positionX=375, positionY=650)
             elif type == '건물':
-                self.setImage(wb=wb, ws=ws2, width=10.4, height=10.97, imgPath=imgPath, data=data,
-                              position="A5", imgType="/정사영상_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=10.18, height=11.48, imgPath=imgPath, data=data,
-                              position="E5", imgType="/3D모델링_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=19.95, height=11.51, imgPath=imgPath, data=data,
-                              position="A20", imgType="/단면도_", savePath=savePath)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/정사영상_", savePath=savePath, posRange="A5:C16", positionX=12, positionY=125)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/3D모델링_", savePath=savePath, posRange="E5:G16", positionX=375, positionY=125)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", positionX=12, positionY=650)
             elif type == '기타':
-                self.setImage(wb=wb, ws=ws2, width=17.53, height=12.06, imgPath=imgPath, data=data,
-                              position="A5", imgType="/위치도_", savePath=savePath)
-                self.setImage(wb=wb, ws=ws2, width=19.62, height=11.45, imgPath=imgPath, data=data,
-                              position="A20", imgType="/단면도_", savePath=savePath)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/위치도_", savePath=savePath, posRange="A5:G17", positionX=12, positionY=140)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", positionX=12, positionY=660)
         except Exception as e:
             print("typeImage - Error : ", e)
+        finally:
+            print('typeImage Done!')
 
-    def setImage(self, wb, ws, width, height, imgPath, data, position, imgType, savePath):
+    def setImage(self, wb, ws, imgPath, data, imgType, savePath, posRange, positionX, positionY):
         try:
+            total_width, total_height = self.getMergedWidthHegiht(posRange, ws)
+
             imgPath = imgPath + imgType + str(data['연번']) + ".jpg"
             img = Image(imgPath)
-            ws.add_image(img, position)
-            img.width, img.height = self.get_col_width_row_height(width, height)
+            p2e = pixels_to_EMU
+            img.width, img.height = self.get_col_width_row_height(total_width -5 * 0.035, total_height -10 * 0.035)
+
+            position = XDRPoint2D(p2e(positionX), p2e(positionY))
+            size = XDRPositiveSize2D(p2e(img.width), p2e(img.height))
+
+            img.anchor = AbsoluteAnchor(pos=position, ext=size)
+
+            ws.add_image(img)
+
             wb.save(savePath)
         except Exception as e:
             print("setImage - Error : ", imgType, " 이미지가 없습니다.", e)
+        finally:
+            print("setImage Done!")
+
+    def getMergedWidthHegiht(self, posRange, ws):
+        try:
+            merged_cell_address = posRange
+            merged_cell = ws[merged_cell_address]
+            start_column, start_row, end_column, end_row = merged_cell[0][0].column, merged_cell[0][0].row, merged_cell[-1][
+                -1].column, merged_cell[-1][-1].row
+            total_width, total_height = 0, 0
+            for col in range(start_column, end_column+1):
+                cell = ws.cell(row=start_row, column=col)
+                print(cell)
+                start_cell_column_letter = openpyxl.utils.get_column_letter(col)
+                col_width = ws.column_dimensions[start_cell_column_letter].width
+                total_width += col_width * 0.21
+
+            for row in range(start_row, end_row+1):
+                cell = ws.cell(row=row, column=start_column)
+                total_height += ws.row_dimensions[row].height * 0.035
+
+            return (total_width, total_height)
+        except Exception as e:
+            print('Error getMergedWidthHegiht() : ',e)
 
     def get_col_width_row_height(self, img_width, img_height):
         col_width = (img_width * 7300) / 193 - 10
@@ -314,14 +346,14 @@ class MyApp(QWidget):
         try:
             app = xw.App(visible=False)
             book = xw.Book(excelPath)
-            pdf1 = self.pdfPath+"/test/"+str(filename)+"_1.pdf"
-            pdf2 = self.pdfPath+"/test/"+str(filename)+"_2.pdf"
+            pdf1 = self.pdfPath + "/test/" + str(filename) + "_1.pdf"
+            pdf2 = self.pdfPath + "/test/" + str(filename) + "_2.pdf"
             book.sheets[0].api.ExportAsFixedFormat(0, pdf1)
             book.sheets[1].api.ExportAsFixedFormat(0, pdf2)
             app.kill()
 
-            pdfFile1 = open(pdf1,"rb")
-            pdfFile2 = open(pdf2,"rb")
+            pdfFile1 = open(pdf1, "rb")
+            pdfFile2 = open(pdf2, "rb")
 
             pdfMerger = PdfMerger()
 
@@ -330,10 +362,12 @@ class MyApp(QWidget):
             pdfFile1.close()
             pdfFile2.close()
 
-            pdfMerger.write(self.pdfPath+"/"+str(filename)+".pdf")
+            pdfMerger.write(self.pdfPath + "/" + str(filename) + ".pdf")
             pdfMerger.close()
         except Exception as e:
-            print('excelToPDF Error : '+e)
+            print('excelToPDF Error : ' + e)
+        finally:
+            print('excelToPDF Done!')
 
 
 if __name__ == '__main__':
