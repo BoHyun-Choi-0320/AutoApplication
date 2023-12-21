@@ -39,7 +39,7 @@ class MyApp(QWidget):
         self.setLayout(grid)
 
         # 객체 생성
-        # self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214_test.xlsx')
+        # self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214_test_.xlsx')
         # self.folderPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/FolderTree_v2')
         # self.formPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/장애물 관리대장 양식')
 
@@ -161,25 +161,25 @@ class MyApp(QWidget):
                 if self.pf['세부종류'][i] == '나무':
                     fileName = '/' + str(self.pf['연번'][i]) + ".xlsx"
                     save = self.savePath + fileName
-                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(나무)_v2.xlsx"
+                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(나무)_v3.xlsx"
                     shutil.copy(form, save)
                     self.inputDataToExcel(savePath=save, data=self.pf.loc[i], imgPath=imgPath)
                 elif self.pf['세부종류'][i] == '산':
                     fileName = '/' + str(self.pf['연번'][i]) + ".xlsx"
                     save = self.savePath + fileName
-                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(산)_v2.xlsx"
+                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(산)_v3.xlsx"
                     shutil.copy(form, save)
                     self.inputDataToExcel(savePath=save, data=self.pf.loc[i], imgPath=imgPath)
                 elif self.pf['세부종류'][i] == '건물':
                     fileName = '/' + str(self.pf['연번'][i]) + ".xlsx"
                     save = self.savePath + fileName
-                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(건물)_v2.xlsx"
+                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(건물)_v3.xlsx"
                     shutil.copy(form, save)
                     self.inputDataToExcel(savePath=save, data=self.pf.loc[i], imgPath=imgPath)
                 else:
                     fileName = '/' + str(self.pf['연번'][i]) + ".xlsx"
                     save = self.savePath + fileName
-                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(기타)_v2.xlsx"
+                    form = self.formPath.text() + "/장애물 관리대장 및 상세표 양식(기타)_v3.xlsx"
                     shutil.copy(form, save)
                     self.inputDataToExcel(savePath=save, data=self.pf.loc[i], imgPath=imgPath)
         except Exception as e:
@@ -213,12 +213,16 @@ class MyApp(QWidget):
                 ws1['F9'].value = data['건축허가일']
             elif type(data['건축허가일']) == int:
                 ws1['F9'].value = data['건축허가일']
+            elif type(data['건축허가일']) == float:
+                ws1['F9'].value = data['건축허가일']
             else:
                 ws1['F9'].value = data['건축허가일'].strftime('%y/%m/%d')
 
             if type(data['준공승인일']) == str:
                 ws1['G9'].value = data['준공승인일']
             elif type(data['준공승인일']) == int:
+                ws1['F9'].value = data['준공승인일']
+            elif type(data['준공승인일']) == float:
                 ws1['F9'].value = data['준공승인일']
             else:
                 ws1['G9'].value = data['준공승인일'].strftime('%y/%m/%d')
@@ -234,6 +238,8 @@ class MyApp(QWidget):
                 ws1['A18'].value = data['신규연도']
             elif type(data['신규연도']) == int:
                 ws1['F9'].value = data['신규연도']
+            elif type(data['신규연도']) == float:
+                ws1['F9'].value = data['신규연도']
             else:
                 ws1['A18'].value = data['신규연도'].strftime('%y/%m/%d')
 
@@ -245,9 +251,6 @@ class MyApp(QWidget):
             ws1['C23'].value = data['기관명']
             ws1['D23'].value = data['연락처']
             ws1['F23'].value = data['관리번호']
-
-            if data['순번'] != '제거':
-                self.typeImage(data['세부종류'], imgPath, data, wb, ws1, ws2, savePath)
 
             ws1['G20'].border = Border(right=Side(border_style='medium', color="000000"),
                                        bottom=Side(border_style='thin', color="000000"),
@@ -277,6 +280,11 @@ class MyApp(QWidget):
             ws1['E9'].font = Font(name='돋움',size=10)
             ws1['F9'].font = Font(name='돋움',size=10)
             ws1['G9'].font = Font(name='돋움',size=10)
+
+            ws1.column_dimensions['B'].width = ws1.column_dimensions['A'].width
+            if data['순번'] != '제거':
+                self.typeImage(data['세부종류'], imgPath, data, wb, ws1, ws2, savePath)
+
             wb.save(savePath)
 
             self.excelToPDF(savePath, data['연번'])
@@ -329,7 +337,7 @@ class MyApp(QWidget):
             size = XDRPositiveSize2D(p2e(img.width), p2e(img.height))
 
             column = origin_cell.column-1
-            coloffset= cellw(0.1)
+            coloffset= cellw(0.09)
             row = origin_cell.row-1
             rowoffset = cellh(0.5)
 
@@ -368,8 +376,8 @@ class MyApp(QWidget):
             print('Error getMergedWidthHegiht() : ', e)
 
     def get_col_width_row_height(self, img_width, img_height):
-        col_width = (img_width * 7300) / 193 - 10
-        row_height = (img_height * 7300) / 193 - 5
+        col_width = (img_width * 7300) / 193 - 5
+        row_height = (img_height * 7300) / 193 -10
         return (col_width, row_height)
 
     def excelToPDF(self, excelPath, filename):
