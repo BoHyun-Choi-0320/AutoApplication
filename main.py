@@ -2,21 +2,18 @@ import os
 import shutil
 import sys
 
-import PyPDF2
 import openpyxl.styles
 import pandas as pd
-import win32com.client
+import xlwings as xw
+from PyPDF2 import PdfMerger, PdfReader
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
-from openpyxl.styles import Font, Border, Side
-from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor, AbsoluteAnchor
+from openpyxl.drawing.spreadsheet_drawing import AbsoluteAnchor, TwoCellAnchor, AnchorMarker, OneCellAnchor
 from openpyxl.drawing.xdr import XDRPositiveSize2D, XDRPoint2D
+from openpyxl.styles import Font, Border, Side
 from openpyxl.utils.units import pixels_to_EMU, cm_to_EMU
-import xlwings as xw
-from PyPDF2 import PdfMerger, PdfReader
-from openpyxl.utils import coordinate_to_tuple, range_to_tuple
 
 
 class MyApp(QWidget):
@@ -42,14 +39,19 @@ class MyApp(QWidget):
         self.setLayout(grid)
 
         # 객체 생성
-        self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214_나무.xlsx')
-        self.folderPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/FolderTree_v2')
-        self.formPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/장애물 관리대장 양식')
+        # self.filePath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/총괄표/(신양식) 장애물 관리대장(무안공항)_231214_test.xlsx')
+        # self.folderPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/FolderTree_v2')
+        # self.formPath = QLineEdit('E:/geostory/2023/타 부서 업무협조/해양사업부/데이터/장애물 관리대장 양식')
+
+        self.filePath = QLineEdit()
+        self.folderPath = QLineEdit()
+        self.formPath = QLineEdit()
 
         self.fileSelectBtn = QPushButton('열기')
         self.folderSelectBtn = QPushButton('열기')
         self.formSelectBtn = QPushButton('열기')
         self.accessBtn = QPushButton('적용')
+        self.mergedPDFBtn = QPushButton('PDF 병합')
 
         # 객체 위치 지정
         grid.addWidget(QLabel('관리대장 : '), 1, 1)
@@ -65,6 +67,7 @@ class MyApp(QWidget):
         grid.addWidget(self.formSelectBtn, 3, 3)
 
         grid.addWidget(self.accessBtn, 4, 2)
+        grid.addWidget(self.mergedPDFBtn, 4,3)
 
         self.fileSelectBtn.clicked.connect(self.selectFile)
         self.folderSelectBtn.clicked.connect(self.selectFolder)
@@ -140,6 +143,8 @@ class MyApp(QWidget):
                 os.mkdir(self.pdfPath)
         except:
             print('Error : Creating directory.' + self.pdfPath)
+        finally:
+            self.mergedPDFBtn.clicked.connect(self.mergedPDF)
 
         try:
             if not os.path.exists(self.pdfPath + "/test"):
@@ -184,7 +189,7 @@ class MyApp(QWidget):
 
     def inputDataToExcel(self, savePath, data, imgPath):
         try:
-            print('inputDataToExcel : ', data['연번'])
+            print('inputDataToExcel : ', str(data['연번']))
             wb = load_workbook(savePath)
             ws1 = wb["연번"]
             ws2 = wb["연번(장애물 관리대장 상세표)"]
@@ -206,11 +211,15 @@ class MyApp(QWidget):
             ws1['F9'].value = data['건축허가일']
             if type(data['건축허가일']) == str:
                 ws1['F9'].value = data['건축허가일']
+            elif type(data['건축허가일']) == int:
+                ws1['F9'].value = data['건축허가일']
             else:
                 ws1['F9'].value = data['건축허가일'].strftime('%y/%m/%d')
 
             if type(data['준공승인일']) == str:
                 ws1['G9'].value = data['준공승인일']
+            elif type(data['준공승인일']) == int:
+                ws1['F9'].value = data['준공승인일']
             else:
                 ws1['G9'].value = data['준공승인일'].strftime('%y/%m/%d')
 
@@ -223,6 +232,8 @@ class MyApp(QWidget):
             ws1['G13'].value = data['위반여부']
             if type(data['신규연도']) == str:
                 ws1['A18'].value = data['신규연도']
+            elif type(data['신규연도']) == int:
+                ws1['F9'].value = data['신규연도']
             else:
                 ws1['A18'].value = data['신규연도'].strftime('%y/%m/%d')
 
@@ -259,52 +270,71 @@ class MyApp(QWidget):
                                        left=Side(border_style='thin', color="000000"),
                                        top=Side(border_style='thin', color="000000"))
             ws1.font = Font(name='돋움', size=11)
+            ws1['A9'].font = Font(name='돋움',size=10)
+            ws1['B9'].font = Font(name='돋움',size=10)
+            ws1['C9'].font = Font(name='돋움',size=10)
+            ws1['D9'].font = Font(name='돋움',size=10)
+            ws1['E9'].font = Font(name='돋움',size=10)
+            ws1['F9'].font = Font(name='돋움',size=10)
+            ws1['G9'].font = Font(name='돋움',size=10)
             wb.save(savePath)
 
+            self.excelToPDF(savePath, data['연번'])
         except Exception as e:
             print("inputDataToExcel() - Error! : ", e)
         finally:
             print('inputDataToExcel Done!')
-            self.excelToPDF(savePath, data['연번'])
 
     def typeImage(self, type, imgPath, data, wb, ws1, ws2, savePath):
         print('MyApp - typeImage()')
         try:
-            self.setImage(wb=wb, ws=ws1, imgPath=imgPath, data=data, imgType="/현장사진_", savePath=savePath, posRange="A25:G25", positionX=12, positionY=700)
+            self.setImage(wb=wb, ws=ws1, imgPath=imgPath, data=data, imgType="/현장사진_", savePath=savePath, posRange="A25:G25", position ="A25")
             if type == '나무':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", positionX=12, positionY=140)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", positionX=12, positionY=650)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/지상라이다_", savePath=savePath, posRange="E20:G20", positionX=375, positionY=650)
-
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", position="A20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/지상라이다_", savePath=savePath, posRange="E20:G20", position="E20")
             elif type == '산':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", positionX=12, positionY=140)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", positionX=12, positionY=650)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/수치표고자료_", savePath=savePath, posRange="E20:G20", positionX=375, positionY=650)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16",  position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", position="A20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/수치표고자료_", savePath=savePath, posRange="E20:G20",  position="E20")
             elif type == '건물':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/정사영상_", savePath=savePath, posRange="A5:C16", positionX=12, positionY=125)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/3D모델링_", savePath=savePath, posRange="E5:G16", positionX=375, positionY=125)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", positionX=12, positionY=650)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/정사영상_", savePath=savePath, posRange="A5:C16",  position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/3D모델링_", savePath=savePath, posRange="E5:G16",  position="E5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20",  position="A20")
             elif type == '기타':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/위치도_", savePath=savePath, posRange="A5:G17", positionX=12, positionY=140)
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", positionX=12, positionY=660)
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/위치도_", savePath=savePath, posRange="A5:G17", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", position="A20")
         except Exception as e:
             print("typeImage - Error : ", e)
         finally:
             print('typeImage Done!')
 
-    def setImage(self, wb, ws, imgPath, data, imgType, savePath, posRange, positionX, positionY):
+    def setImage(self, wb, ws, imgPath, data, imgType, savePath, posRange, position):
         try:
             total_width, total_height = self.getMergedWidthHegiht(posRange, ws)
 
             imgPath = imgPath + imgType + str(data['연번']) + ".jpg"
             img = Image(imgPath)
-            p2e = pixels_to_EMU
-            img.width, img.height = self.get_col_width_row_height(total_width -5 * 0.035, total_height -10 * 0.035)
+            img.width, img.height = self.get_col_width_row_height(total_width, total_height)
 
-            position = XDRPoint2D(p2e(positionX), p2e(positionY))
+            origin_cell = ws[position]
+            print(origin_cell.row, origin_cell.column)
+
+            p2e = pixels_to_EMU
+            c2e = cm_to_EMU
+
+            cellh = lambda x:c2e((x*49.77)/99)
+            cellw = lambda x:c2e((x*(18.65-1.71))/10)
+
             size = XDRPositiveSize2D(p2e(img.width), p2e(img.height))
 
-            img.anchor = AbsoluteAnchor(pos=position, ext=size)
+            column = origin_cell.column-1
+            coloffset= cellw(0.1)
+            row = origin_cell.row-1
+            rowoffset = cellh(0.5)
+
+            marker = AnchorMarker(col=column, colOff=coloffset, row=row, rowOff=rowoffset)
+            img.anchor = OneCellAnchor(_from=marker, ext=size)
 
             ws.add_image(img)
 
@@ -318,23 +348,24 @@ class MyApp(QWidget):
         try:
             merged_cell_address = posRange
             merged_cell = ws[merged_cell_address]
-            start_column, start_row, end_column, end_row = merged_cell[0][0].column, merged_cell[0][0].row, merged_cell[-1][
-                -1].column, merged_cell[-1][-1].row
+            start_column, start_row, end_column, end_row = merged_cell[0][0].column, merged_cell[0][0].row, \
+                                                           merged_cell[-1][
+                                                               -1].column, merged_cell[-1][-1].row
             total_width, total_height = 0, 0
-            for col in range(start_column, end_column+1):
+            for col in range(start_column, end_column + 1):
                 cell = ws.cell(row=start_row, column=col)
                 print(cell)
                 start_cell_column_letter = openpyxl.utils.get_column_letter(col)
                 col_width = ws.column_dimensions[start_cell_column_letter].width
                 total_width += col_width * 0.21
 
-            for row in range(start_row, end_row+1):
+            for row in range(start_row, end_row + 1):
                 cell = ws.cell(row=row, column=start_column)
                 total_height += ws.row_dimensions[row].height * 0.035
 
             return (total_width, total_height)
         except Exception as e:
-            print('Error getMergedWidthHegiht() : ',e)
+            print('Error getMergedWidthHegiht() : ', e)
 
     def get_col_width_row_height(self, img_width, img_height):
         col_width = (img_width * 7300) / 193 - 10
@@ -368,6 +399,28 @@ class MyApp(QWidget):
             print('excelToPDF Error : ' + e)
         finally:
             print('excelToPDF Done!')
+
+    def mergedPDF(self):
+        print('mergedPDF')
+        try:
+            if self.pdfPath == None:
+                print("값 입력하세요.")
+            else:
+                pdfList = os.listdir(self.pdfPath)
+                sorted(pdfList, key=lambda x : int(x.split('.')[0]))
+                pdfList = [file for file in sorted(pdfList, key=lambda x : int(x.split('.')[0])) if file.endswith(".pdf")]
+
+                merger = PdfMerger()
+
+                for pdf in pdfList:
+                    merger.append(self.pdfPath+"/"+pdf)
+
+                merger.write(self.pdfPath+"/"+"관리대장.pdf")
+                merger.close()
+
+        except Exception as e:
+            print("Error - ",e)
+
 
 
 if __name__ == '__main__':
