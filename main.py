@@ -67,7 +67,7 @@ class MyApp(QWidget):
         grid.addWidget(self.formSelectBtn, 3, 3)
 
         grid.addWidget(self.accessBtn, 4, 2)
-        grid.addWidget(self.mergedPDFBtn, 4,3)
+        grid.addWidget(self.mergedPDFBtn, 4, 3)
 
         self.fileSelectBtn.clicked.connect(self.selectFile)
         self.folderSelectBtn.clicked.connect(self.selectFolder)
@@ -102,14 +102,17 @@ class MyApp(QWidget):
 
     # 관리대장 읽어오는 함수
     def readExcel(self):
-        self.pf = pd.read_excel(self.filePath.text(), header=3, usecols='B,C,E,I:L,P:AF,AJ,AL,AN:AP,AZ:BA,BF,BY')
-        self.pf.columns = ['순번', '신규연도', '연번', '세부종류', '장애물 용도', '명칭', '건축주', '특례 장애물 구분', '차폐 기준 장애물 및 지정일',
+        self.pf = pd.read_excel(self.filePath.text(), header=3,
+                                usecols='B,C,E,I,J,K,P,Q,R,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AH,AI,AJ,AL,AM,AN,AO,AP,AZ,BA,BO,BR,BS,BW,BY,CA')
+        print(self.pf)
+        self.pf.columns = ['순번', '신규연도', '연번', '세부종류', '장애물 용도', '명칭', '특례 장애물 구분', '차폐 기준 장애물 및 지정일',
                            '주소1', '주소2',
                            '주소3',
                            '주소4', '도로명주소', '위치구역', '위도', '경도', 'X축', 'Y축', '지반높이', '건물/시설물/수목 높이', '전체높이',
                            '제한표면',
                            '제한표면 침범높이',
-                           '협의높이', '위반여부', '기관명', '연락처', '관리번호', '건축허가일', '준공승인일', '장애물 등재일', '좌표/높이 결정방법']
+                           '협의높이', '위반여부', '건축주', '기관명', '연락처', '관리번호', '건축허가일', '준공승인일', '장애물 등재일', '장애물 등재일2',
+                           '장애물 등재일3', '비고', '좌표/높이 결정방법', 'AIP']
         print(self.pf)
         self.makeFolder()
         self.copyExcel()
@@ -184,6 +187,7 @@ class MyApp(QWidget):
                     self.inputDataToExcel(savePath=save, data=self.pf.loc[i], imgPath=imgPath)
         except Exception as e:
             print('Error : Copy Excel. ' + e)
+
         finally:
             print('MyApp - copyExcel() done!')
 
@@ -204,26 +208,17 @@ class MyApp(QWidget):
             ws1['A9'].value = data['위도']
             ws1['B9'].value = data['경도']
             ws1['C9'].value = data['X축']
-            ws1['C9'].number_format = '00"˚"00"′"00.00"″"'
+            ws1['A9'].number_format = '00"˚"00"′"00.00"″"'
             ws1['D9'].value = data['Y축']
-            ws1['D9'].number_format = '00"˚"00"′"00.00"″"'
+            ws1['B9'].number_format = '00"˚"00"′"00.00"″"'
             ws1['E9'].value = data['좌표/높이 결정방법']
-            ws1['F9'].value = data['건축허가일']
-            if type(data['건축허가일']) == str:
-                ws1['F9'].value = data['건축허가일']
-            elif type(data['건축허가일']) == int:
-                ws1['F9'].value = data['건축허가일']
-            elif type(data['건축허가일']) == float:
-                ws1['F9'].value = data['건축허가일']
+            if type(data['건축허가일']) == str or type(data['건축허가일']) == int or type(data['건축허가일']) == float:
+                ws1['F9'].value = str(data['건축허가일'])
             else:
                 ws1['F9'].value = data['건축허가일'].strftime('%y/%m/%d')
-
-            if type(data['준공승인일']) == str:
-                ws1['G9'].value = data['준공승인일']
-            elif type(data['준공승인일']) == int:
-                ws1['F9'].value = data['준공승인일']
-            elif type(data['준공승인일']) == float:
-                ws1['F9'].value = data['준공승인일']
+            print(data['건축허가일'],type(data['건축허가일']),data['준공승인일'],type(data['준공승인일']))
+            if type(data['준공승인일']) == str or type(data['준공승인일']) == int or type(data['준공승인일']) == float:
+                ws1['G9'].value = str(data['준공승인일'])
             else:
                 ws1['G9'].value = data['준공승인일'].strftime('%y/%m/%d')
 
@@ -232,25 +227,34 @@ class MyApp(QWidget):
             ws1['C13'].value = data['전체높이']
             ws1['D13'].value = data['제한표면']
             ws1['E13'].value = data['제한표면 침범높이']
-            ws1['F13'].value = data['협의높이']
+            if type(data['협의높이']) == int or type(data['협의높이']) == float:
+                ws1['F13'].value = data['협의높이']
+                ws1['F13'].number_format = '0.00'
+            else:
+                ws1['F13'].value = str(data['협의높이'])
+            print(data['협의높이'])
+
             ws1['G13'].value = data['위반여부']
-            if type(data['신규연도']) == str:
-                ws1['A18'].value = data['신규연도']
-            elif type(data['신규연도']) == int:
-                ws1['F9'].value = data['신규연도']
-            elif type(data['신규연도']) == float:
-                ws1['F9'].value = data['신규연도']
+            if type(data['신규연도']) == str or type(data['신규연도']) == int or type(data['신규연도']) == float:
+                ws1['A18'].value = str(data['신규연도'])
             else:
                 ws1['A18'].value = data['신규연도'].strftime('%y/%m/%d')
 
             ws1['B18'].value = data['특례 장애물 구분']
             ws1['C18'].value = data['차폐 기준 장애물 및 지정일']
-            ws1['E18'].value = data['장애물 등재일']
+            # ws1['E18'].value = data['장애물 등재일1']+ " " +data['장애물 등재일2']+ " " +data['장애물 등재일3']
+            print(type(data['장애물 등재일']), type(data['장애물 등재일2']), type(data['장애물 등재일3']))
+            if data['장애물 등재일'] == '-' and data['장애물 등재일2'] =='-' and data['장애물 등재일3']=='-':
+                ws1['E18'].value = str(data['장애물 등재일'])
+            else:
+                ws1['E18'].value = str(data['장애물 등재일']) + " " + str(data['장애물 등재일2']) + " " + str(data['장애물 등재일3'])
             ws1['A23'].value = data['장애물 용도']
             ws1['B23'].value = data['건축주']
             ws1['C23'].value = data['기관명']
             ws1['D23'].value = data['연락처']
             ws1['F23'].value = data['관리번호']
+            ws1['A27'].value = data['비고']
+            ws1['G5'].value =data['AIP']
 
             ws1['G20'].border = Border(right=Side(border_style='medium', color="000000"),
                                        bottom=Side(border_style='thin', color="000000"),
@@ -273,13 +277,13 @@ class MyApp(QWidget):
                                        left=Side(border_style='thin', color="000000"),
                                        top=Side(border_style='thin', color="000000"))
             ws1.font = Font(name='돋움', size=11)
-            ws1['A9'].font = Font(name='돋움',size=10)
-            ws1['B9'].font = Font(name='돋움',size=10)
-            ws1['C9'].font = Font(name='돋움',size=10)
-            ws1['D9'].font = Font(name='돋움',size=10)
-            ws1['E9'].font = Font(name='돋움',size=10)
-            ws1['F9'].font = Font(name='돋움',size=10)
-            ws1['G9'].font = Font(name='돋움',size=10)
+            ws1['A9'].font = Font(name='돋움', size=10)
+            ws1['B9'].font = Font(name='돋움', size=10)
+            ws1['C9'].font = Font(name='돋움', size=10)
+            ws1['D9'].font = Font(name='돋움', size=10)
+            ws1['E9'].font = Font(name='돋움', size=10)
+            ws1['F9'].font = Font(name='돋움', size=10)
+            ws1['G9'].font = Font(name='돋움', size=10)
 
             ws1.column_dimensions['B'].width = ws1.column_dimensions['A'].width
             if data['순번'] != '제거':
@@ -296,22 +300,34 @@ class MyApp(QWidget):
     def typeImage(self, type, imgPath, data, wb, ws1, ws2, savePath):
         print('MyApp - typeImage()')
         try:
-            self.setImage(wb=wb, ws=ws1, imgPath=imgPath, data=data, imgType="/현장사진_", savePath=savePath, posRange="A25:G25", position ="A25")
+            self.setImage(wb=wb, ws=ws1, imgPath=imgPath, data=data, imgType="/현장사진_", savePath=savePath,
+                          posRange="A25:G25", position="A25")
             if type == '나무':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16", position="A5")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", position="A20")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/지상라이다_", savePath=savePath, posRange="E20:G20", position="E20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath,
+                              posRange="A5:G16", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath,
+                              posRange="A20:C20", position="A20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/지상라이다_", savePath=savePath,
+                              posRange="E20:G20", position="E20")
             elif type == '산':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A5:G16",  position="A5")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath, posRange="A20:C20", position="A20")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/수치표고자료_", savePath=savePath, posRange="E20:G20",  position="E20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath,
+                              posRange="A5:G16", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/포인트클라우드_", savePath=savePath,
+                              posRange="A20:C20", position="A20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/수치표고자료_", savePath=savePath,
+                              posRange="E20:G20", position="E20")
             elif type == '건물':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/정사영상_", savePath=savePath, posRange="A5:C16",  position="A5")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/3D모델링_", savePath=savePath, posRange="E5:G16",  position="E5")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20",  position="A20")
-            elif type == '기타':
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/위치도_", savePath=savePath, posRange="A5:G17", position="A5")
-                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath, posRange="A20:G20", position="A20")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/정사영상_", savePath=savePath,
+                              posRange="A5:C16", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/3D모델링_", savePath=savePath,
+                              posRange="E5:G16", position="E5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath,
+                              posRange="A20:G20", position="A20")
+            elif type == '기타' or type == '철탑':
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/위치도_", savePath=savePath,
+                              posRange="A5:G17", position="A5")
+                self.setImage(wb=wb, ws=ws2, imgPath=imgPath, data=data, imgType="/단면도_", savePath=savePath,
+                              posRange="A20:G20", position="A20")
         except Exception as e:
             print("typeImage - Error : ", e)
         finally:
@@ -331,14 +347,14 @@ class MyApp(QWidget):
             p2e = pixels_to_EMU
             c2e = cm_to_EMU
 
-            cellh = lambda x:c2e((x*49.77)/99)
-            cellw = lambda x:c2e((x*(18.65-1.71))/10)
+            cellh = lambda x: c2e((x * 49.77) / 99)
+            cellw = lambda x: c2e((x * (18.65 - 1.71)) / 10)
 
             size = XDRPositiveSize2D(p2e(img.width), p2e(img.height))
 
-            column = origin_cell.column-1
-            coloffset= cellw(0.09)
-            row = origin_cell.row-1
+            column = origin_cell.column - 1
+            coloffset = cellw(0.09)
+            row = origin_cell.row - 1
             rowoffset = cellh(0.5)
 
             marker = AnchorMarker(col=column, colOff=coloffset, row=row, rowOff=rowoffset)
@@ -377,7 +393,7 @@ class MyApp(QWidget):
 
     def get_col_width_row_height(self, img_width, img_height):
         col_width = (img_width * 7300) / 193 - 5
-        row_height = (img_height * 7300) / 193 -10
+        row_height = (img_height * 7300) / 193 - 10
         return (col_width, row_height)
 
     def excelToPDF(self, excelPath, filename):
@@ -415,19 +431,20 @@ class MyApp(QWidget):
                 print("값 입력하세요.")
             else:
                 pdfList = os.listdir(self.pdfPath)
-                sorted(pdfList, key=lambda x : int(x.split('.')[0]))
-                pdfList = [file for file in sorted(pdfList, key=lambda x : int(x.split('.')[0])) if file.endswith(".pdf")]
+                sorted(pdfList, key=lambda x: int(x.split('.')[0]))
+                pdfList = [file for file in sorted(pdfList, key=lambda x: int(x.split('.')[0])) if
+                           file.endswith(".pdf")]
 
                 merger = PdfMerger()
 
                 for pdf in pdfList:
-                    merger.append(self.pdfPath+"/"+pdf)
+                    merger.append(self.pdfPath + "/" + pdf)
 
-                merger.write(self.pdfPath+"/"+"관리대장.pdf")
+                merger.write(self.pdfPath + "/" + "관리대장.pdf")
                 merger.close()
 
         except Exception as e:
-            print("Error - ",e)
+            print("Error - ", e)
 
 
 
