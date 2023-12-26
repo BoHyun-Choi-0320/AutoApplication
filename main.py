@@ -104,7 +104,6 @@ class MyApp(QWidget):
     def readExcel(self):
         self.pf = pd.read_excel(self.filePath.text(), header=3,
                                 usecols='B,C,E,I,J,K,P,Q,R,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AH,AI,AJ,AL,AM,AN,AO,AP,AZ,BA,BO,BR,BS,BW,BY,CA')
-        print(self.pf)
         self.pf.columns = ['순번', '신규연도', '연번', '세부종류', '장애물 용도', '명칭', '특례 장애물 구분', '차폐 기준 장애물 및 지정일',
                            '주소1', '주소2',
                            '주소3',
@@ -113,7 +112,6 @@ class MyApp(QWidget):
                            '제한표면 침범높이',
                            '협의높이', '위반여부', '건축주', '기관명', '연락처', '관리번호', '건축허가일', '준공승인일', '장애물 등재일', '장애물 등재일2',
                            '장애물 등재일3', '비고', '좌표/높이 결정방법', 'AIP']
-        print(self.pf)
         self.makeFolder()
         self.copyExcel()
         try:
@@ -157,7 +155,6 @@ class MyApp(QWidget):
 
     def copyExcel(self):
         print('MyApp - copyExcel()')
-        print(self.pf.columns, len(self.pf))
         try:
             for i in range(len(self.pf)):
                 imgPath = self.folderPath.text() + "/" + str(self.pf['연번'][i])
@@ -202,7 +199,7 @@ class MyApp(QWidget):
 
             ws1['A5'].value = data['연번']
             ws1['B5'].value = data['명칭']
-            ws1['C5'].value = data['주소1'] + " " + data['주소2'] + " " + data['주소3'] + " " + data['주소4']
+            ws1['C5'].value = data['주소1'].strip() + " " + data['주소2'].strip() + " " + data['주소3'].strip() + " " + (data['주소4'].strip())
             ws1['D6'].value = data['도로명주소']
             ws1['F5'].value = data['위치구역']
             ws1['A9'].value = data['위도']
@@ -215,12 +212,11 @@ class MyApp(QWidget):
             if type(data['건축허가일']) == str or type(data['건축허가일']) == int or type(data['건축허가일']) == float:
                 ws1['F9'].value = str(data['건축허가일'])
             else:
-                ws1['F9'].value = data['건축허가일'].strftime('%y/%m/%d')
-            print(data['건축허가일'],type(data['건축허가일']),data['준공승인일'],type(data['준공승인일']))
+                ws1['F9'].value = (data['건축허가일']).strftime('%y/%m/%d')
             if type(data['준공승인일']) == str or type(data['준공승인일']) == int or type(data['준공승인일']) == float:
                 ws1['G9'].value = str(data['준공승인일'])
             else:
-                ws1['G9'].value = data['준공승인일'].strftime('%y/%m/%d')
+                ws1['G9'].value = (data['준공승인일']).strftime('%y/%m/%d')
 
             ws1['A13'].value = data['지반높이']
             ws1['B13'].value = data['건물/시설물/수목 높이']
@@ -232,7 +228,6 @@ class MyApp(QWidget):
                 ws1['F13'].number_format = '0.00'
             else:
                 ws1['F13'].value = str(data['협의높이'])
-            print(data['협의높이'])
 
             ws1['G13'].value = data['위반여부']
             if type(data['신규연도']) == str or type(data['신규연도']) == int or type(data['신규연도']) == float:
@@ -242,8 +237,6 @@ class MyApp(QWidget):
 
             ws1['B18'].value = data['특례 장애물 구분']
             ws1['C18'].value = data['차폐 기준 장애물 및 지정일']
-            # ws1['E18'].value = data['장애물 등재일1']+ " " +data['장애물 등재일2']+ " " +data['장애물 등재일3']
-            print(type(data['장애물 등재일']), type(data['장애물 등재일2']), type(data['장애물 등재일3']))
             if data['장애물 등재일'] == '-' and data['장애물 등재일2'] =='-' and data['장애물 등재일3']=='-':
                 ws1['E18'].value = str(data['장애물 등재일'])
             else:
@@ -342,7 +335,6 @@ class MyApp(QWidget):
             img.width, img.height = self.get_col_width_row_height(total_width, total_height)
 
             origin_cell = ws[position]
-            print(origin_cell.row, origin_cell.column)
 
             p2e = pixels_to_EMU
             c2e = cm_to_EMU
@@ -378,7 +370,6 @@ class MyApp(QWidget):
             total_width, total_height = 0, 0
             for col in range(start_column, end_column + 1):
                 cell = ws.cell(row=start_row, column=col)
-                print(cell)
                 start_cell_column_letter = openpyxl.utils.get_column_letter(col)
                 col_width = ws.column_dimensions[start_cell_column_letter].width
                 total_width += col_width * 0.21
